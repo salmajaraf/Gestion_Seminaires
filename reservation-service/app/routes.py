@@ -89,33 +89,58 @@ def creer_reservation():
 
 @bp.route('/reservation-service/update-reservation/<int:seminaire_id>', methods=['PUT'])
 def modifier_reservation(seminaire_id):
-    print('called')
     """Mettre à jour une réservation existante."""
-    data = request.get_json()  
+    data = request.get_json()
     utilisateur_existe = verify_token(data.get('token'))
-    print('user',utilisateur_existe)
-    
-    # Récupérer le payload JSON envoyé par le client
-    print(data)
+
+    # Vérifier si l'utilisateur est authentifié
+    if not utilisateur_existe:
+        return jsonify({"message": "Utilisateur non authentifié."}), 403
 
     # Vérifier si la réservation existe
     reservation = Reservation.query.filter_by(seminaire_id=seminaire_id).first()
 
-    if not reservation:
-        return jsonify({"message": "Réservation non trouvée."}), 404
+    # if not reservation:
+    #     return jsonify({"message": "Réservation non trouvée."}), 404
 
-    # Mettre à jour 'date' si présent dans les données
+    # Vérifier si une nouvelle date est fournie
     if 'date' in data:
-        reservation.date_debut = datetime.strptime(data['date'], '%Y-%m-%d %H:%M:%S')
-        reservation.date_fin = reservation.date_debut + timedelta(hours=int(data.get('duree', 1)))
+        try:
+            # Conversion depuis le format ISO 8601
+            nouvelle_date_debut = datetime.fromisoformat(data['date'])
+            nouvelle_duree = int(data.get('duree', 1))  # Par défaut, durée = 1 heure
+            nouvelle_date_fin = nouvelle_date_debut + timedelta(hours=nouvelle_duree)
 
-    # Mettre à jour 'statut' si présent dans les données
+            # Vérifier si la nouvelle plage horaire est disponible
+            conflit = Reservation.query.filter(
+                (Reservation.id != reservation.id) &  # Exclure la réservation actuelle
+                (Reservation.date_debut < nouvelle_date_fin) &
+                (Reservation.date_fin > nouvelle_date_debut)
+            ).first()
+
+            if conflit:
+                return jsonify({
+                    "message": "La date demandée n'est pas disponible.",
+                    "conflit": {
+                        "date_debut": conflit.date_debut.strftime('%Y-%m-%d %H:%M:%S'),
+                        "date_fin": conflit.date_fin.strftime('%Y-%m-%d %H:%M:%S'),
+                    }
+                }), 409
+
+            # Mettre à jour les dates si elles sont disponibles
+            reservation.date_debut = nouvelle_date_debut
+            reservation.date_fin = nouvelle_date_fin
+
+        except ValueError:
+            return jsonify({"message": "Format de date invalide. Utilisez le format ISO 8601 (ex : '2024-12-04T10:00:00')."}), 400
+
+    # Mettre à jour le statut si présent dans les données
     if 'statut' in data:
         reservation.statut = data.get('statut')
 
     # Enregistrer les modifications
     db.session.commit()
-    return jsonify({"message": "Réservation mise à jour avec succès."})
+    return jsonify({"message": "Réservation mise à jour avec succès."}), 200
 
 
 @bp.route('/reservation-service/remove-reservation/<int:seminaire_id>', methods=['DELETE'])
