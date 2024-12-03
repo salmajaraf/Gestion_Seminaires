@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func
-from notification_service.app.database import Base
+from notification_service.database import Base
 
 class Notification(Base):
     __tablename__ = "notifications"

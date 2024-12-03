@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from notification_service.app.routers import notifications
+from notification_service.routers import notifications
 
 app = FastAPI()
 

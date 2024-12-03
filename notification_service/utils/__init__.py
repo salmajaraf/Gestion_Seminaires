@@ -1,4 +1,4 @@
-from notification_service.app.utils.mail import send_email
+from notification_service.utils.mail import send_email
 
 if __name__ == "__main__":
     subject = "Test Email"
