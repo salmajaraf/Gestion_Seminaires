@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from ..database import SessionLocal
-from ..models import Notification
-from ..utils.mail import send_email
-from ..utils.helpers import get_user_email, generate_message, get_seminar_name
+from notification_service.app.database import SessionLocal
+from notification_service.app.models import Notification
+from notification_service.app.utils.mail import send_email
+from notification_service.app.utils.helpers import get_user_email, generate_message, get_seminar_name
 
 router = APIRouter()
 
