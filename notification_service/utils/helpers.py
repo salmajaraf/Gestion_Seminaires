@@ -2,11 +2,10 @@ from enum import Enum
 import httpx
 from fastapi import HTTPException
 from functools import lru_cache
+import os
 
-
-
-AUTH_SERVICE_URL = "http://auth-service-url"
-SEMINAR_SERVICE_URL = "http://seminar-service-url"
+AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL')
+SEMINAR_SERVICE_URL = os.getenv('SEMINAIRE_SERVICE_URL')
 
 
 class EventType(str, Enum):
