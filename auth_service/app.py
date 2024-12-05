@@ -43,7 +43,62 @@ def get_user_roles_from_keycloak(access_token):
     else:
         return []
     
+@app.route("/signup", methods=["POST"])
+def signup():
+    """
+    Route for user registration (Sign-Up).
+    """
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+    first_name = data.get("first_name", "")
+    last_name = data.get("last_name", "")
 
+    # Keycloak admin API endpoint to create a new user
+    keycloak_url = f"{Config.KEYCLOAK_SERVER_URL}/admin/realms/{Config.KEYCLOAK_REALM_NAME}/users"
+    token_url = f"{Config.KEYCLOAK_SERVER_URL}/realms/{Config.KEYCLOAK_REALM_NAME}/protocol/openid-connect/token"
+    
+    # Data to obtain an admin access token
+    admin_data = {
+        "client_id": Config.KEYCLOAK_CLIENT_ID,
+        "client_secret": Config.KEYCLOAK_CLIENT_SECRET,
+        "grant_type": "client_credentials"
+    }
+
+    try:
+        # Obtain an admin access token
+        token_response = requests.post(token_url, data=admin_data)
+        token_response.raise_for_status()
+        access_token = token_response.json().get("access_token")
+
+        # Create the user in Keycloak
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        user_data = {
+            "username": email,
+            "email": email,
+            "enabled": True,
+            "firstName": first_name,
+            "lastName": last_name,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": password,
+                    "temporary": False
+                }
+            ]
+        }
+        response = requests.post(keycloak_url, json=user_data, headers=headers)
+        
+        if response.status_code == 201:
+            return jsonify({"msg": "User created successfully"}), 201
+        else:
+            return jsonify({"msg": "Failed to create user", "error": response.json()}), response.status_code
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"msg": f"Error communicating with Keycloak: {e}"}), 500
 
 # Route pour le login (connexion)
 @app.route("/login", methods=["POST"])
